@@ -178,8 +178,9 @@ Email Body: {text_body}"""
                             <p>Best,<br>Support Team</p>
                             </body></html>
                             """
+                            sender_name = os.environ.get('ORGANIZATION_NAME', 'IT Helpdesk')
                             ses_client.send_email(
-                                Source=sender_email,
+                                Source=f"{sender_name} <{sender_email}>",
                                 Destination={'ToAddresses': [from_address]},
                                 Message={
                                     'Subject': {'Data': f"Re: {subject} [{ticket_id}]"},
