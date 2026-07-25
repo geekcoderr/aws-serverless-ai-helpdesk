@@ -1,0 +1,76 @@
+name: Deploy AWS Serverless AI Helpdesk
+
+on:
+  push:
+    branches:
+      - main
+
+# Permission required for OIDC authentication with AWS
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  # TODO: Replace with your AWS Account ID and ECR Repository name
+  ECR_REPOSITORY: email-injest-lambda
+  AWS_ACCOUNT_ID: "<YOUR_AWS_ACCOUNT_ID>"
+  # TODO: Replace with your exact IAM OIDC Role ARN
+  AWS_OIDC_ROLE_ARN: "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/GitHubActions-OIDC-Role"
+  # TODO: Replace with the exact names of your two Lambda functions in AWS
+  MAIN_LAMBDA_NAME: "<MAIN_LAMBDA_NAME>"
+  DLQ_LAMBDA_NAME: "<DLQ_LAMBDA_NAME>"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    # CRITICAL: Only run this job if the commit message contains 'ACTION: Deployment'
+    if: contains(github.event.head_commit.message, 'ACTION: Deployment')
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build the Docker image
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          
+          # Push both tags to ECR
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          # Output the image URI for the next step
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Update Main Lambda Function Code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.MAIN_LAMBDA_NAME }} \
+            --image-uri ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Update DLQ Lambda Function Code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.DLQ_LAMBDA_NAME }} \
+            --image-uri ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Wait for Lambda Functions to Update
+        run: |
+          aws lambda wait function-updated --function-name ${{ env.MAIN_LAMBDA_NAME }}
+          aws lambda wait function-updated --function-name ${{ env.DLQ_LAMBDA_NAME }}
