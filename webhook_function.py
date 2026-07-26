@@ -71,11 +71,22 @@ def lambda_handler(event, context):
         for user_email in watchers:
             try:
                 html_body = f"""
-                <html><body>
-                <p>The incident associated with <strong>{issue_key}</strong> has been successfully resolved.</p>
-                <p>If you continue to experience issues, please submit a new support request.</p>
-                <p>Best,<br>{sender_name}</p>
-                </body></html>
+                <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
+                    <div style="background-color: #36B37E; padding: 15px 20px; color: #fff;">
+                        <h2 style="margin: 0; font-size: 20px;">Incident Resolved</h2>
+                    </div>
+                    <div style="padding: 20px;">
+                        <p>Hello,</p>
+                        <p>The incident associated with your support request has been successfully resolved.</p>
+                        <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
+                            <li><strong>Reference ID:</strong> {issue_key}</li>
+                            <li><strong>Status:</strong> Closed / Resolved</li>
+                        </ul>
+                        <p>If you continue to experience issues, please submit a new support request by replying to this email or sending a new one.</p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                        <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
+                    </div>
+                </div>
                 """
                 ses_client.send_email(
                     Source=f"{sender_name} <{sender_email}>",

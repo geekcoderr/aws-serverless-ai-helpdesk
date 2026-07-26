@@ -80,7 +80,24 @@ def lambda_handler(event, context):
                         Message={
                             'Subject': {'Data': 'Unable to process your support request'},
                             'Body': {
-                                'Html': {'Data': f"<html><body><p>Hi there,</p><p>We received your email, but our automated ticketing system encountered an unexpected error while trying to process it. Our administration team has been notified and will look into this issue.</p><p>Best,<br>{sender_name}</p></body></html>"}
+                                'Html': {'Data': f"""
+                                <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
+                                    <div style="background-color: #DE350B; padding: 15px 20px; color: #fff;">
+                                        <h2 style="margin: 0; font-size: 20px;">System Processing Error</h2>
+                                    </div>
+                                    <div style="padding: 20px;">
+                                        <p>Hello,</p>
+                                        <p>We received your email, but our automated ticketing system encountered an unexpected error while trying to process it.</p>
+                                        <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
+                                            <li><strong>Status:</strong> Processing Failed</li>
+                                            <li><strong>Action Taken:</strong> Administrators Notified</li>
+                                        </ul>
+                                        <p>Our administration team has been notified and will look into this issue. Please try submitting your request again later.</p>
+                                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                                        <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
+                                    </div>
+                                </div>
+                                """}
                             }
                         }
                     )

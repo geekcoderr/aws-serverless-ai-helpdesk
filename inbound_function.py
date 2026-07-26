@@ -199,11 +199,22 @@ Incoming Email Body: {text_body}"""
                             
                     if sender_email:
                         html_body = f"""
-                        <html><body>
-                        <p>Our team is actively investigating and working on a resolution for this reported issue. Reference: <strong>{ticket_id}</strong></p>
-                        <p>We have received your latest message and added it to the active ticket.</p>
-                        <p>Best,<br>{sender_name}</p>
-                        </body></html>
+                        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
+                            <div style="background-color: #0052CC; padding: 15px 20px; color: #fff;">
+                                <h2 style="margin: 0; font-size: 20px;">Support Request Updated</h2>
+                            </div>
+                            <div style="padding: 20px;">
+                                <p>Hello,</p>
+                                <p>We have successfully received your latest message and added it to the active support ticket.</p>
+                                <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
+                                    <li><strong>Reference ID:</strong> {ticket_id}</li>
+                                    <li><strong>Status:</strong> In Progress</li>
+                                </ul>
+                                <p>Our engineering team is actively investigating and working on a resolution for this reported issue.</p>
+                                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                                <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
+                            </div>
+                        </div>
                         """
                         ses_client.send_email(
                             Source=f"{sender_name} <{sender_email}>",
@@ -234,11 +245,22 @@ Incoming Email Body: {text_body}"""
                     if sender_email:
                         count_text = f"{watcher_count} other users have" if watcher_count > 1 else "Another user has" if watcher_count == 1 else "Other users have"
                         html_body = f"""
-                        <html><body>
-                        <p>This issue is currently tracking under an active incident. {count_text} also reported this event. Our engineering team is actively working on a resolution. Reference: <strong>{ticket_id}</strong></p>
-                        <p>We have linked your report to the master incident and you will be notified when it is resolved.</p>
-                        <p>Best,<br>{sender_name}</p>
-                        </body></html>
+                        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
+                            <div style="background-color: #FF991F; padding: 15px 20px; color: #fff;">
+                                <h2 style="margin: 0; font-size: 20px;">Incident Tracked</h2>
+                            </div>
+                            <div style="padding: 20px;">
+                                <p>Hello,</p>
+                                <p>This issue is currently tracking under an active master incident. {count_text} also reported this event.</p>
+                                <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
+                                    <li><strong>Reference ID:</strong> {ticket_id}</li>
+                                    <li><strong>Status:</strong> Active Incident Investigated</li>
+                                </ul>
+                                <p>We have linked your report to the master incident. Our engineering team is actively working on a resolution, and you will be notified automatically when it is resolved.</p>
+                                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                                <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
+                            </div>
+                        </div>
                         """
                         ses_client.send_email(
                             Source=f"{sender_name} <{sender_email}>",
@@ -293,11 +315,24 @@ Incoming Email Body: {text_body}"""
                     
                     if sender_email:
                         html_body = f"""
-                        <html><body>
-                        <p>The support request has been acknowledged and is in our queue for review. Reference: <strong>{issue_key}</strong></p>
-                        <p>Our team will look into this and provide updates accordingly.</p>
-                        <p>Best,<br>{sender_name}</p>
-                        </body></html>
+                        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
+                            <div style="background-color: #00875A; padding: 15px 20px; color: #fff;">
+                                <h2 style="margin: 0; font-size: 20px;">Support Request Received</h2>
+                            </div>
+                            <div style="padding: 20px;">
+                                <p>Hello,</p>
+                                <p>Your support request has been acknowledged and is securely in our queue for review.</p>
+                                <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
+                                    <li><strong>Reference ID:</strong> {issue_key}</li>
+                                    <li><strong>Status:</strong> Open</li>
+                                    <li><strong>Category:</strong> {ai_analysis.get('category', 'General')}</li>
+                                    <li><strong>Priority:</strong> {ai_analysis.get('priority', 'Medium')}</li>
+                                </ul>
+                                <p>Our team will look into this and provide updates accordingly.</p>
+                                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                                <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
+                            </div>
+                        </div>
                         """
                         ses_client.send_email(
                             Source=f"{sender_name} <{sender_email}>",
