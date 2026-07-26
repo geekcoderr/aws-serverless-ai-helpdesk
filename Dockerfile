@@ -7,9 +7,10 @@ COPY requirements.txt ./
 # Install the Python dependencies
 RUN pip install -r requirements.txt
 
-# Copy BOTH Lambda handler codes
+# Copy all Lambda handler codes
 COPY inbound_function.py ./
 COPY dlq_function.py ./
+COPY webhook_function.py ./
 
 # Set the default CMD to the main handler.
 # The DLQ Lambda will override this via the AWS Console configuration.
