@@ -12,6 +12,15 @@ import time
 from datetime import datetime
 from boto3.dynamodb.conditions import Key
 
+def extract_adf_text(node):
+    if isinstance(node, dict):
+        if node.get('type') == 'text' and 'text' in node:
+            return node['text']
+        return " ".join(filter(None, [extract_adf_text(child) for child in node.get('content', [])]))
+    elif isinstance(node, list):
+        return " ".join(filter(None, [extract_adf_text(item) for item in node]))
+    return ""
+
 # Initialize AWS SDK Clients
 s3_client = boto3.client('s3')
 bedrock_client = boto3.client('bedrock-runtime', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
@@ -109,32 +118,39 @@ def lambda_handler(event, context):
                 search_payload = {
                     "jql": jql,
                     "maxResults": 15,
-                    "fields": ["summary"]
+                    "fields": ["summary", "description"]
                 }
                 search_res = requests.post(f"https://{jira_domain}/rest/api/3/search/jql", json=search_payload, headers=headers)
                 if search_res.ok:
                     issues = search_res.json().get('issues', [])
                     print(f"DEBUG JQL found {len(issues)} issues.")
                     if issues:
-                        recent_issues_context = "Currently Open Tickets:\n"
+                        recent_issues_context = "CURRENTLY OPEN TICKETS (Read descriptions carefully to identify duplicates):\n\n"
                         for iss in issues:
-                            recent_issues_context += f"ID: {iss['key']} | Summary: {iss['fields']['summary']}\n"
+                            desc_adf = iss['fields'].get('description', {})
+                            desc_text = extract_adf_text(desc_adf)
+                            # Truncate description to prevent token bloat
+                            if len(desc_text) > 500: desc_text = desc_text[:500] + "..."
+                            recent_issues_context += f"--- TICKET ID: {iss['key']} ---\nSummary: {iss['fields'].get('summary', '')}\nDescription: {desc_text}\n\n"
                 else:
                     print(f"DEBUG JQL Error: {search_res.text}")
             
             # 6. Call Bedrock
-            bedrock_prompt = f"""You are an IT Support triage AI. Analyze the incoming email and compare it against the currently open tickets.
-Output ONLY a JSON object.
+            bedrock_prompt = f"""You are an elite enterprise IT Support Triage AI. Your primary job is to aggressively deduplicate incoming emails by matching them to existing open tickets.
+
+Analyze the incoming email and compare it against the currently open tickets.
+Output ONLY a JSON object, with no markdown formatting.
 
 Fields:
-- "intent": Always use "new_ticket" if the user is reporting a problem/issue. Use "update_existing" ONLY if the user is explicitly replying to an existing ticket.
+- "intent": Use "new_ticket" if this is a brand new issue. Use "update_existing" ONLY if the user is explicitly replying to an existing ticket. (NOTE: If they report a duplicate issue, keep intent as "new_ticket" but fill in the ticket_id field below!)
 - "ticket_id": 
-   - IF the user explicitly mentions a ticket ID (e.g. SUP-123) in their email, extract it.
-   - ELSE IF the user's issue is strongly related to or describing the SAME underlying incident/bug as one of the "Currently Open Tickets" provided below, output that matching ticket ID. Use semantic reasoning. If multiple users report login failures, database timeouts, etc. in different words, they should be grouped to the same ticket_id.
+   - IF the user explicitly mentions a ticket ID (e.g. GRIV-123) in their email, extract it.
+   - ELSE IF the user's issue is strongly related to, or describing the EXACT SAME underlying incident as one of the "CURRENTLY OPEN TICKETS" provided below, output that matching ticket ID. 
+     * CRITICAL: Use deep semantic reasoning! If multiple users report "VPN down", "Cisco AnyConnect failed", "Secure Tunnel rejecting password" - these are the SAME outage. Group them together under the same ticket_id.
    - ELSE return null.
 - "priority": High, Medium, Low
 - "category": Bug, Access, Billing, General
-- "summary": Max 2 sentences summarizing the request.
+- "summary": Max 2 sentences summarizing the core issue.
 
 {recent_issues_context if recent_issues_context else 'No currently open tickets.'}
 
