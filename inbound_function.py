@@ -74,13 +74,6 @@ def lambda_handler(event, context):
                     print(f"Duplicate Message-ID detected: {message_id}. Skipping.")
                     s3_client.delete_object(Bucket=bucket_name, Key=object_key)
                     continue
-                
-                table.put_item(Item={
-                    'PK': dedup_key,
-                    'SK': 'DEDUP',
-                    'processed_at': datetime.now().isoformat(),
-                    'ttl': int(time.time()) + (7 * 24 * 60 * 60)
-                })
 
             text_body = ""
             attachments = []
@@ -169,12 +162,15 @@ Incoming Email Body: {text_body}"""
                 elif 'image/webp' in content_type.lower(): fmt = 'webp'
                 
                 if fmt:
-                    message_content.append({
-                        "image": {
-                            "format": fmt,
-                            "source": {"bytes": content_bytes}
-                        }
-                    })
+                    if len(content_bytes) > 3 * 1024 * 1024:
+                        print(f"Image {filename} is too large ({len(content_bytes)} bytes). Skipping Bedrock.")
+                    else:
+                        message_content.append({
+                            "image": {
+                                "format": fmt,
+                                "source": {"bytes": content_bytes}
+                            }
+                        })
 
             bedrock_response = bedrock_client.converse(
                 modelId="amazon.nova-pro-v1:0",
@@ -223,11 +219,11 @@ Incoming Email Body: {text_body}"""
                     
                     # Track the user as a watcher in DynamoDB so they receive future Webhook updates (like Resolution)
                     if table:
-                        table.put_item(Item={
-                            'PK': f"INCIDENT#{ticket_id}",
-                            'SK': f"REPORTER#{raw_email}",
-                            'notified_at': datetime.now().isoformat()
-                        })
+                        table.update_item(
+                            Key={'PK': f"INCIDENT#{ticket_id}", 'SK': f"REPORTER#{raw_email}"},
+                            UpdateExpression='SET notified_at = :val REMOVE resolved_notified',
+                            ExpressionAttributeValues={':val': datetime.now().isoformat()}
+                        )
                     
                     if attachments:
                         attach_headers = {"Authorization": f"Basic {auth_encoded}", "X-Atlassian-Token": "no-check"}
@@ -277,11 +273,11 @@ Incoming Email Body: {text_body}"""
                     
                     watcher_count = 0
                     if table:
-                        table.put_item(Item={
-                            'PK': f"INCIDENT#{ticket_id}",
-                            'SK': f"REPORTER#{raw_email}",
-                            'notified_at': datetime.now().isoformat()
-                        })
+                        table.update_item(
+                            Key={'PK': f"INCIDENT#{ticket_id}", 'SK': f"REPORTER#{raw_email}"},
+                            UpdateExpression='SET notified_at = :val REMOVE resolved_notified',
+                            ExpressionAttributeValues={':val': datetime.now().isoformat()}
+                        )
                         try:
                             ddb_query = table.query(KeyConditionExpression=Key('PK').eq(f"INCIDENT#{ticket_id}"))
                             watcher_count = ddb_query.get('Count', 1) - 1 # Exclude the original reporter
@@ -359,11 +355,11 @@ Incoming Email Body: {text_body}"""
                             'SK': f"TICKET#{issue_key}",
                             'status': 'Open'
                         })
-                        table.put_item(Item={
-                            'PK': f"INCIDENT#{issue_key}",
-                            'SK': f"REPORTER#{raw_email}",
-                            'notified_at': datetime.now().isoformat()
-                        })
+                        table.update_item(
+                            Key={'PK': f"INCIDENT#{issue_key}", 'SK': f"REPORTER#{raw_email}"},
+                            UpdateExpression='SET notified_at = :val',
+                            ExpressionAttributeValues={':val': datetime.now().isoformat()}
+                        )
                     
                     if sender_email:
                         category = ai_analysis.get('category', 'General')
@@ -415,6 +411,14 @@ Incoming Email Body: {text_body}"""
                         )
             
             s3_client.delete_object(Bucket=bucket_name, Key=object_key)
+            
+            if table and message_id:
+                table.put_item(Item={
+                    'PK': dedup_key,
+                    'SK': 'DEDUP',
+                    'processed_at': datetime.now().isoformat(),
+                    'ttl': int(time.time()) + (7 * 24 * 60 * 60)
+                })
             
         except Exception as e:
             print(f"Error processing record: {e}")

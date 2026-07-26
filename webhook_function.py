@@ -18,6 +18,14 @@ def lambda_handler(event, context):
         print("Missing env vars")
         return {'statusCode': 500, 'body': 'Configuration Error'}
         
+    webhook_secret = os.environ.get('WEBHOOK_SECRET')
+    if webhook_secret:
+        query_params = event.get('queryStringParameters', {}) or {}
+        provided_token = query_params.get('token')
+        if provided_token != webhook_secret:
+            print("Authentication failed: Invalid or missing webhook token.")
+            return {'statusCode': 403, 'body': 'Forbidden'}
+        
     try:
         body = json.loads(event.get('body', '{}'))
         webhook_event = body.get('webhookEvent')
