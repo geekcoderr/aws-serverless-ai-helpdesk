@@ -13,7 +13,7 @@ env:
   AWS_REGION: us-east-1
   # TODO: Replace with your AWS Account ID and ECR Repository name
   ECR_REPOSITORY: email-injest-lambda
-  AWS_ACCOUNT_ID: "***REMOVED***"
+  AWS_ACCOUNT_ID: "${{ secrets.AWS_ACCOUNT_ID }}"
   # TODO: Replace with the exact names of your two Lambda functions in AWS
   MAIN_LAMBDA_NAME: "ProcessInboundEmail"
   DLQ_LAMBDA_NAME: "ProcessInboundEmailDLQ"
