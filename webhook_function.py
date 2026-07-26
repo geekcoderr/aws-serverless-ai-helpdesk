@@ -77,28 +77,34 @@ def lambda_handler(event, context):
             for user_email in watchers:
                 try:
                     html_body = f"""
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.5; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
-                        <div style="padding: 24px; border-bottom: 1px solid #e1e4e8;">
-                            <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #24292e;">Incident Resolved</h2>
+                    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
+                        <div style="background-color: #f9fafb; padding: 24px 32px; border-bottom: 1px solid #f3f4f6;">
+                            <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827; letter-spacing: -0.01em;">Incident Resolved</h2>
                         </div>
-                        <div style="padding: 24px;">
-                            <p style="margin-top: 0;">Hello,</p>
-                            <p>The incident associated with your support request has been successfully resolved.</p>
+                        <div style="padding: 32px;">
+                            <p style="margin-top: 0; font-size: 16px; color: #374151;">Hello,</p>
+                            <p style="font-size: 16px; color: #4b5563;">The incident associated with your support request has been successfully resolved.</p>
                             
-                            <div style="background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; margin: 20px 0;">
-                                <div style="margin-bottom: 12px;">
-                                    <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Reference ID</span><br>
-                                    <span style="font-size: 15px; font-weight: 500;">{issue_key}</span>
-                                </div>
-                                <div>
-                                    <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Final Status</span><br>
-                                    <span style="font-size: 15px; font-weight: 500; color: #22863a;">{issue_status_name}</span>
-                                </div>
+                            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 28px 0;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding-bottom: 12px; width: 50%;">
+                                            <span style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Reference ID</span><br>
+                                            <span style="font-size: 15px; font-weight: 600; color: #0f172a;">{issue_key}</span>
+                                        </td>
+                                        <td style="padding-bottom: 12px; width: 50%;">
+                                            <span style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Final Status</span><br>
+                                            <span style="font-size: 14px; font-weight: 500; color: #065f46; background-color: #d1fae5; padding: 4px 10px; border-radius: 16px;">{issue_status_name}</span>
+                                        </td>
+                                    </tr>
+                                </table>
                             </div>
                             
-                            <p>If you continue to experience issues, please submit a new support request by replying to this email.</p>
+                            <p style="font-size: 15px; color: #4b5563;">If you continue to experience issues, please submit a new support request by replying to this email.</p>
                             
-                            <p style="margin-bottom: 0; color: #586069;">Best regards,<br><strong style="color: #24292e;">{sender_name}</strong></p>
+                            <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+                                <p style="margin: 0; font-size: 14px; color: #6b7280;">Best regards,<br><strong style="color: #111827; font-weight: 600;">{sender_name}</strong></p>
+                            </div>
                         </div>
                     </div>
                     """

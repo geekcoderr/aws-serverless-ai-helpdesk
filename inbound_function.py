@@ -236,25 +236,34 @@ Incoming Email Body: {text_body}"""
                     if sender_email:
                         status_msg = "Our engineering team is actively investigating and working on a resolution." if ticket_is_open else "This ticket is currently marked as closed, but we have added your latest message. We will review and reopen if necessary."
                         html_body = f"""
-                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.5; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
-                            <div style="padding: 24px; border-bottom: 1px solid #e1e4e8;">
-                                <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #24292e;">Support Request Updated</h2>
+                        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
+                            <div style="background-color: #f9fafb; padding: 24px 32px; border-bottom: 1px solid #f3f4f6;">
+                                <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827; letter-spacing: -0.01em;">Support Request Updated</h2>
                             </div>
-                            <div style="padding: 24px;">
-                                <p style="margin-top: 0;">Hello,</p>
-                                <p>We have successfully received your message and added it to the support ticket.</p>
-                                <div style="background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; margin: 20px 0;">
-                                    <div style="margin-bottom: 12px;">
-                                        <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Reference ID</span><br>
-                                        <span style="font-size: 15px; font-weight: 500;">{ticket_id}</span>
-                                    </div>
-                                    <div>
-                                        <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Current Status</span><br>
-                                        <span style="font-size: 15px; font-weight: 500;">{issue_status_name}</span>
-                                    </div>
+                            <div style="padding: 32px;">
+                                <p style="margin-top: 0; font-size: 16px; color: #374151;">Hello,</p>
+                                <p style="font-size: 16px; color: #4b5563;">We have successfully received your message and added it to the support ticket.</p>
+                                
+                                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 28px 0;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <tr>
+                                            <td style="padding-bottom: 12px; width: 50%;">
+                                                <span style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Reference ID</span><br>
+                                                <span style="font-size: 15px; font-weight: 600; color: #0f172a;">{ticket_id}</span>
+                                            </td>
+                                            <td style="padding-bottom: 12px; width: 50%;">
+                                                <span style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Current Status</span><br>
+                                                <span style="font-size: 14px; font-weight: 500; color: #334155; background-color: #e2e8f0; padding: 4px 10px; border-radius: 16px;">{issue_status_name}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </div>
-                                <p>{status_msg}</p>
-                                <p style="margin-bottom: 0; color: #586069; margin-top: 24px;">Best regards,<br><strong style="color: #24292e;">{sender_name}</strong></p>
+                                
+                                <p style="font-size: 15px; color: #4b5563;">{status_msg}</p>
+                                
+                                <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+                                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Best regards,<br><strong style="color: #111827; font-weight: 600;">{sender_name}</strong></p>
+                                </div>
                             </div>
                         </div>
                         """
@@ -287,25 +296,34 @@ Incoming Email Body: {text_body}"""
                     if sender_email:
                         count_text = f"{watcher_count} other users have" if watcher_count > 1 else "Another user has" if watcher_count == 1 else "Other users have"
                         html_body = f"""
-                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.5; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
-                            <div style="padding: 24px; border-bottom: 1px solid #e1e4e8;">
-                                <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #24292e;">Incident Tracked</h2>
+                        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
+                            <div style="background-color: #f9fafb; padding: 24px 32px; border-bottom: 1px solid #f3f4f6;">
+                                <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827; letter-spacing: -0.01em;">Incident Tracked</h2>
                             </div>
-                            <div style="padding: 24px;">
-                                <p style="margin-top: 0;">Hello,</p>
-                                <p>This issue is currently tracking under an active master incident. {count_text} also reported this event.</p>
-                                <div style="background-color: #fffbdd; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; margin: 20px 0;">
-                                    <div style="margin-bottom: 12px;">
-                                        <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Master Incident ID</span><br>
-                                        <span style="font-size: 15px; font-weight: 500;">{ticket_id}</span>
-                                    </div>
-                                    <div>
-                                        <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Current Status</span><br>
-                                        <span style="font-size: 15px; font-weight: 500;">{issue_status_name}</span>
-                                    </div>
+                            <div style="padding: 32px;">
+                                <p style="margin-top: 0; font-size: 16px; color: #374151;">Hello,</p>
+                                <p style="font-size: 16px; color: #4b5563;">This issue is currently tracking under an active master incident. {count_text} also reported this event.</p>
+                                
+                                <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 20px; margin: 28px 0;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <tr>
+                                            <td style="padding-bottom: 12px; width: 50%;">
+                                                <span style="color: #92400e; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Master Incident ID</span><br>
+                                                <span style="font-size: 15px; font-weight: 600; color: #78350f;">{ticket_id}</span>
+                                            </td>
+                                            <td style="padding-bottom: 12px; width: 50%;">
+                                                <span style="color: #92400e; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Current Status</span><br>
+                                                <span style="font-size: 14px; font-weight: 500; color: #92400e; background-color: #fef3c7; padding: 4px 10px; border-radius: 16px;">{issue_status_name}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </div>
-                                <p>We have linked your report to the master incident. Our team is actively working on a resolution, and you will be notified automatically when it is resolved.</p>
-                                <p style="margin-bottom: 0; color: #586069; margin-top: 24px;">Best regards,<br><strong style="color: #24292e;">{sender_name}</strong></p>
+                                
+                                <p style="font-size: 15px; color: #4b5563;">We have linked your report to the master incident. Our team is actively working on a resolution, and you will be notified automatically when it is resolved.</p>
+                                
+                                <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+                                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Best regards,<br><strong style="color: #111827; font-weight: 600;">{sender_name}</strong></p>
+                                </div>
                             </div>
                         </div>
                         """
@@ -365,39 +383,44 @@ Incoming Email Body: {text_body}"""
                         category = ai_analysis.get('category', 'General')
                         priority = ai_analysis.get('priority', 'Medium')
                         html_body = f"""
-                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.5; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
-                            <div style="padding: 24px; border-bottom: 1px solid #e1e4e8;">
-                                <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #24292e;">Support Request Received</h2>
+                        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
+                            <div style="background-color: #f9fafb; padding: 24px 32px; border-bottom: 1px solid #f3f4f6;">
+                                <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827; letter-spacing: -0.01em;">Support Request Received</h2>
                             </div>
-                            <div style="padding: 24px;">
-                                <p style="margin-top: 0;">Hello,</p>
-                                <p>Your support request has been acknowledged and is securely in our queue for review.</p>
-                                <div style="background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; margin: 20px 0;">
+                            <div style="padding: 32px;">
+                                <p style="margin-top: 0; font-size: 16px; color: #374151;">Hello,</p>
+                                <p style="font-size: 16px; color: #4b5563;">Your support request has been acknowledged and is securely in our queue for review.</p>
+                                
+                                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 28px 0;">
                                     <table style="width: 100%; border-collapse: collapse;">
                                         <tr>
-                                            <td style="padding-bottom: 12px; width: 50%;">
-                                                <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Reference ID</span><br>
-                                                <span style="font-size: 15px; font-weight: 500;">{issue_key}</span>
+                                            <td style="padding-bottom: 16px; width: 50%;">
+                                                <span style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Reference ID</span><br>
+                                                <span style="font-size: 15px; font-weight: 600; color: #0f172a;">{issue_key}</span>
                                             </td>
-                                            <td style="padding-bottom: 12px; width: 50%;">
-                                                <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Status</span><br>
-                                                <span style="font-size: 15px; font-weight: 500;">Open</span>
+                                            <td style="padding-bottom: 16px; width: 50%;">
+                                                <span style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Status</span><br>
+                                                <span style="font-size: 14px; font-weight: 500; color: #1d4ed8; background-color: #dbeafe; padding: 4px 10px; border-radius: 16px;">Open</span>
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style="width: 50%;">
-                                                <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Category</span><br>
-                                                <span style="font-size: 15px; font-weight: 500;">{category}</span>
+                                                <span style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Category</span><br>
+                                                <span style="font-size: 15px; font-weight: 500; color: #334155;">{category}</span>
                                             </td>
                                             <td style="width: 50%;">
-                                                <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Priority</span><br>
-                                                <span style="font-size: 15px; font-weight: 500;">{priority}</span>
+                                                <span style="color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Priority</span><br>
+                                                <span style="font-size: 15px; font-weight: 500; color: #334155;">{priority}</span>
                                             </td>
                                         </tr>
                                     </table>
                                 </div>
-                                <p>Our team will look into this and provide updates accordingly.</p>
-                                <p style="margin-bottom: 0; color: #586069; margin-top: 24px;">Best regards,<br><strong style="color: #24292e;">{sender_name}</strong></p>
+                                
+                                <p style="font-size: 15px; color: #4b5563;">Our team will look into this and provide updates accordingly.</p>
+                                
+                                <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6;">
+                                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Best regards,<br><strong style="color: #111827; font-weight: 600;">{sender_name}</strong></p>
+                                </div>
                             </div>
                         </div>
                         """
