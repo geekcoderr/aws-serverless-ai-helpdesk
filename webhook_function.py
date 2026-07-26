@@ -29,12 +29,9 @@ def lambda_handler(event, context):
         issue_key = issue.get('key')
         status_category = issue.get('fields', {}).get('status', {}).get('statusCategory', {}).get('key')
         
-        # Only process if status is Done (Closed)
-        if status_category != 'done':
-            print(f"Ticket {issue_key} updated but not closed. Ignoring.")
-            return {'statusCode': 200, 'body': 'Ignored mid-state update'}
-            
-        print(f"Ticket {issue_key} CLOSED. Processing notifications.")
+        issue_status_name = issue.get('fields', {}).get('status', {}).get('name', 'Updated')
+        
+        print(f"Ticket {issue_key} updated to {issue_status_name}. Processing notifications.")
         
         watchers = []
         try:
@@ -44,12 +41,12 @@ def lambda_handler(event, context):
                     email = item['SK'].split('REPORTER#')[1]
                     watchers.append(email)
                     
-                    # Update DynamoDB state to closed
+                    # Update DynamoDB state
                     table.update_item(
                         Key={'PK': item['PK'], 'SK': item['SK']},
                         UpdateExpression='SET #s = :val',
                         ExpressionAttributeNames={'#s': 'status'},
-                        ExpressionAttributeValues={':val': 'Closed'}
+                        ExpressionAttributeValues={':val': issue_status_name}
                     )
                     
                     # Also try to update the EMAIL# mapping
@@ -58,7 +55,7 @@ def lambda_handler(event, context):
                             Key={'PK': f"EMAIL#{email}", 'SK': f"TICKET#{issue_key}"},
                             UpdateExpression='SET #s = :val',
                             ExpressionAttributeNames={'#s': 'status'},
-                            ExpressionAttributeValues={':val': 'Closed'}
+                            ExpressionAttributeValues={':val': issue_status_name}
                         )
                     except Exception:
                         pass
@@ -67,20 +64,25 @@ def lambda_handler(event, context):
             
         print(f"Found {len(watchers)} users watching {issue_key}")
         
-        # Send resolution emails
+        # Send update emails
         for user_email in watchers:
             try:
+                # Choose color based on status category
+                bg_color = "#36B37E" if status_category == 'done' else "#0052CC"
+                title = "Incident Resolved" if status_category == 'done' else "Ticket Status Updated"
+                message_text = "The incident associated with your support request has been successfully resolved." if status_category == 'done' else "There has been an update to the status of your support request."
+                
                 html_body = f"""
                 <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
-                    <div style="background-color: #36B37E; padding: 15px 20px; color: #fff;">
-                        <h2 style="margin: 0; font-size: 20px;">Incident Resolved</h2>
+                    <div style="background-color: {bg_color}; padding: 15px 20px; color: #fff;">
+                        <h2 style="margin: 0; font-size: 20px;">{title}</h2>
                     </div>
                     <div style="padding: 20px;">
                         <p>Hello,</p>
-                        <p>The incident associated with your support request has been successfully resolved.</p>
+                        <p>{message_text}</p>
                         <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
                             <li><strong>Reference ID:</strong> {issue_key}</li>
-                            <li><strong>Status:</strong> Closed / Resolved</li>
+                            <li><strong>Current Status:</strong> {issue_status_name}</li>
                         </ul>
                         <p>If you continue to experience issues, please submit a new support request by replying to this email or sending a new one.</p>
                         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
@@ -92,13 +94,13 @@ def lambda_handler(event, context):
                     Source=f"{sender_name} <{sender_email}>",
                     Destination={'ToAddresses': [user_email]},
                     Message={
-                        'Subject': {'Data': f"Resolved: {issue_key}"},
+                        'Subject': {'Data': f"Update on {issue_key}: {issue_status_name}"},
                         'Body': {'Html': {'Data': html_body}}
                     }
                 )
-                print(f"Resolution email sent to {user_email}")
+                print(f"Update email sent to {user_email}")
             except Exception as e:
-                print(f"Failed to send resolution email to {user_email}: {e}")
+                print(f"Failed to send update email to {user_email}: {e}")
                 
         return {'statusCode': 200, 'body': 'Successfully processed webhook'}
         
