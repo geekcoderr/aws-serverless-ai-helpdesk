@@ -108,10 +108,13 @@ def lambda_handler(event, context):
                 search_res = requests.get(f"https://{jira_domain}/rest/api/2/search", params={'jql': jql, 'maxResults': 15}, headers=headers)
                 if search_res.ok:
                     issues = search_res.json().get('issues', [])
+                    print(f"DEBUG JQL found {len(issues)} issues.")
                     if issues:
                         recent_issues_context = "Currently Open Tickets:\n"
                         for iss in issues:
                             recent_issues_context += f"ID: {iss['key']} | Summary: {iss['fields']['summary']}\n"
+                else:
+                    print(f"DEBUG JQL Error: {search_res.text}")
             
             # 6. Call Bedrock
             bedrock_prompt = f"""You are an IT Support triage AI. Analyze the incoming email and compare it against the currently open tickets.
@@ -132,6 +135,8 @@ Fields:
 Incoming Email Subject: {subject}
 Incoming Email Body: {text_body}"""
 
+            print(f"DEBUG Bedrock Prompt:\n{bedrock_prompt}")
+
             bedrock_response = bedrock_client.converse(
                 modelId="amazon.nova-lite-v1:0",
                 messages=[{"role": "user", "content": [{"text": bedrock_prompt}]}],
@@ -139,6 +144,7 @@ Incoming Email Body: {text_body}"""
             )
 
             ai_text = bedrock_response['output']['message']['content'][0]['text']
+            print(f"DEBUG Bedrock Response:\n{ai_text}")
             ai_analysis = {"intent": "new_ticket", "ticket_id": None, "priority": "Medium", "category": "General", "summary": subject}
             try:
                 start_idx = ai_text.find('{')
