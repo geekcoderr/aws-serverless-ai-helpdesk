@@ -106,7 +106,7 @@ def lambda_handler(event, context):
                 auth_encoded = base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
                 headers = {"Authorization": f"Basic {auth_encoded}", "Content-Type": "application/json"}
                 
-                jql = f'project = {jira_project_key} AND statusCategory != Done ORDER BY created DESC'
+                jql = f'project = {jira_project_key} AND updated >= -7d ORDER BY created DESC'
                 # Note: Jira recently deprecated /rest/api/2/search via GET, requires POST to /rest/api/3/search/jql or GET /rest/api/3/search
                 search_payload = {
                     "jql": jql,
@@ -118,7 +118,7 @@ def lambda_handler(event, context):
                     issues = search_res.json().get('issues', [])
                     print(f"DEBUG JQL found {len(issues)} issues.")
                     if issues:
-                        recent_issues_context = "CURRENTLY OPEN TICKETS (Read descriptions carefully to identify duplicates):\n\n"
+                        recent_issues_context = "RECENTLY OPEN OR CLOSED TICKETS (Read descriptions carefully to identify duplicates/recurring issues):\n\n"
                         for iss in issues:
                             desc_adf = iss['fields'].get('description', {})
                             desc_text = extract_adf_text(desc_adf)
@@ -129,23 +129,23 @@ def lambda_handler(event, context):
                     print(f"DEBUG JQL Error: {search_res.text}")
             
             # 6. Call Bedrock
-            bedrock_prompt = f"""You are an elite enterprise IT Support Triage AI. Your primary job is to aggressively deduplicate incoming emails by matching them to existing open tickets.
+            bedrock_prompt = f"""You are an elite enterprise IT Support Triage AI. Your primary job is to aggressively deduplicate incoming emails by matching them to existing tickets.
 
-Analyze the incoming email and compare it against the currently open tickets.
+Analyze the incoming email and compare it against the recent tickets provided.
 Output ONLY a JSON object, with no markdown formatting.
 
 Fields:
-- "intent": Use "new_ticket" if this is a brand new issue. Use "update_existing" ONLY if the user is explicitly replying to an existing ticket. (NOTE: If they report a duplicate issue, keep intent as "new_ticket" but fill in the ticket_id field below!)
+- "intent": Use "new_ticket" if this is a brand new issue. Use "update_existing" ONLY if the user is explicitly replying to an existing ticket or reporting a resurgence of a very recently closed ticket. (NOTE: If they report a duplicate of an active outage, keep intent as "new_ticket" but fill in the ticket_id field below!)
 - "ticket_id": 
    - IF the user explicitly mentions a ticket ID (e.g. GRIV-123) in their email, extract it.
-   - ELSE IF the user's issue is strongly related to, or describing the EXACT SAME underlying incident as one of the "CURRENTLY OPEN TICKETS" provided below, output that matching ticket ID. 
-     * CRITICAL: Use deep semantic reasoning! If multiple users report "VPN down", "Cisco AnyConnect failed", "Secure Tunnel rejecting password" - these are the SAME outage. Group them together under the same ticket_id.
+   - ELSE IF the user's issue is strongly related to, or describing the EXACT SAME underlying incident as one of the "RECENTLY OPEN OR CLOSED TICKETS" provided below, output that matching ticket ID. 
+     * CRITICAL: Use deep semantic reasoning! Group duplicate outages. If the user is reporting a problem that matches a ticket closed a few days ago, output that ticket ID so we can reopen it!
    - ELSE return null.
 - "priority": High, Medium, Low
 - "category": Bug, Access, Billing, General
 - "summary": Max 2 sentences summarizing the core issue.
 
-{recent_issues_context if recent_issues_context else 'No currently open tickets.'}
+{recent_issues_context if recent_issues_context else 'No recently open or closed tickets.'}
 
 Incoming Email Subject: {subject}
 Incoming Email Body: {text_body}"""
@@ -207,7 +207,33 @@ Incoming Email Body: {text_body}"""
                         
                         ticket_is_open = (status_category != 'done')
                         if not ticket_is_open:
-                            print(f"Ticket {ticket_id} is CLOSED. Continuing to append to existing ticket.")
+                            print(f"Ticket {ticket_id} is CLOSED. Attempting to reopen.")
+                            try:
+                                # Fetch available transitions
+                                trans_res = requests.get(f"https://{jira_domain}/rest/api/2/issue/{ticket_id}/transitions", headers=headers)
+                                if trans_res.ok:
+                                    transitions = trans_res.json().get('transitions', [])
+                                    # Look for a transition that implies reopening or moving back to in progress/to do
+                                    reopen_trans_id = None
+                                    for t in transitions:
+                                        t_name = t.get('name', '').lower()
+                                        t_cat = t.get('to', {}).get('statusCategory', {}).get('key', '')
+                                        # Prefer a transition that goes to 'new' or 'indeterminate' (In Progress/To Do)
+                                        if t_cat in ['new', 'indeterminate'] or 'reopen' in t_name or 'in progress' in t_name or 'to do' in t_name:
+                                            reopen_trans_id = t['id']
+                                            break
+                                    
+                                    if reopen_trans_id:
+                                        print(f"Found reopen transition {reopen_trans_id} for ticket {ticket_id}. Transitioning...")
+                                        requests.post(
+                                            f"https://{jira_domain}/rest/api/2/issue/{ticket_id}/transitions", 
+                                            json={"transition": {"id": reopen_trans_id}}, 
+                                            headers=headers
+                                        )
+                                        ticket_is_open = True
+                                        issue_status_name = "Reopened"
+                            except Exception as trans_err:
+                                print(f"Error trying to reopen ticket {ticket_id}: {trans_err}")
                     else:
                         intent = 'new_ticket'
                         ticket_id = None
@@ -234,7 +260,10 @@ Incoming Email Body: {text_body}"""
                                 print(f"Attachment failed: {att_res.text}")
                             
                     if sender_email:
-                        status_msg = "Our engineering team is actively investigating and working on a resolution." if ticket_is_open else "This ticket is currently marked as closed, but we have added your latest message. We will review and reopen if necessary."
+                        if issue_status_name == "Reopened":
+                            status_msg = "We noticed this ticket was previously closed. Your latest message has automatically reopened it, and our team will investigate."
+                        else:
+                            status_msg = "Our engineering team is actively investigating and working on a resolution." if ticket_is_open else "This ticket is currently marked as closed, but we have added your latest message."
                         html_body = f"""
                         <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden;">
                             <div style="background-color: #f9fafb; padding: 24px 32px; border-bottom: 1px solid #f3f4f6;">
