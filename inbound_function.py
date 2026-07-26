@@ -193,44 +193,48 @@ Incoming Email Body: {text_body}"""
                         issue_status_name = issue_data['fields']['status']['name']
                         status_category = issue_data['fields']['status']['statusCategory']['key']
                         
-                        if status_category != 'done':
-                            ticket_is_open = True
-                        else:
-                            print(f"Ticket {ticket_id} is CLOSED. Forcing new_ticket intent.")
-                            intent = 'new_ticket'
-                            ticket_id = None
+                        ticket_is_open = (status_category != 'done')
+                        if not ticket_is_open:
+                            print(f"Ticket {ticket_id} is CLOSED. Continuing to append to existing ticket.")
                     else:
                         intent = 'new_ticket'
                         ticket_id = None
                         
                 # A: Status Request or Update to existing
-                if intent in ['status_request', 'update_existing'] and ticket_id and ticket_is_open:
+                if intent in ['status_request', 'update_existing'] and ticket_id:
                     comment_payload = {"body": f"User {from_address} sent an email update:\n\n{safe_body}"}
                     requests.post(f"https://{jira_domain}/rest/api/2/issue/{ticket_id}/comment", json=comment_payload, headers=headers)
                     
                     if attachments:
                         attach_headers = {"Authorization": f"Basic {auth_encoded}", "X-Atlassian-Token": "no-check"}
                         for filename, content_bytes, content_type in attachments:
-                            m_data = MultipartEncoder(fields={'file': (filename, content_bytes, content_type)})
-                            attach_headers['Content-Type'] = m_data.content_type
-                            requests.post(f"https://{jira_domain}/rest/api/3/issue/{ticket_id}/attachments", data=m_data, headers=attach_headers)
+                            files = {'file': (filename, content_bytes, content_type)}
+                            att_res = requests.post(f"https://{jira_domain}/rest/api/3/issue/{ticket_id}/attachments", files=files, headers=attach_headers)
+                            if not att_res.ok:
+                                print(f"Attachment failed: {att_res.text}")
                             
                     if sender_email:
+                        status_msg = "Our engineering team is actively investigating and working on a resolution." if ticket_is_open else "This ticket is currently marked as closed, but we have added your latest message. We will review and reopen if necessary."
                         html_body = f"""
-                        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
-                            <div style="background-color: #0052CC; padding: 15px 20px; color: #fff;">
-                                <h2 style="margin: 0; font-size: 20px;">Support Request Updated</h2>
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.5; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
+                            <div style="padding: 24px; border-bottom: 1px solid #e1e4e8;">
+                                <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #24292e;">Support Request Updated</h2>
                             </div>
-                            <div style="padding: 20px;">
-                                <p>Hello,</p>
-                                <p>We have successfully received your latest message and added it to the active support ticket.</p>
-                                <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
-                                    <li><strong>Reference ID:</strong> {ticket_id}</li>
-                                    <li><strong>Status:</strong> {issue_status_name}</li>
-                                </ul>
-                                <p>Our engineering team is actively investigating and working on a resolution for this reported issue.</p>
-                                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                                <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
+                            <div style="padding: 24px;">
+                                <p style="margin-top: 0;">Hello,</p>
+                                <p>We have successfully received your message and added it to the support ticket.</p>
+                                <div style="background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; margin: 20px 0;">
+                                    <div style="margin-bottom: 12px;">
+                                        <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Reference ID</span><br>
+                                        <span style="font-size: 15px; font-weight: 500;">{ticket_id}</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Current Status</span><br>
+                                        <span style="font-size: 15px; font-weight: 500;">{issue_status_name}</span>
+                                    </div>
+                                </div>
+                                <p>{status_msg}</p>
+                                <p style="margin-bottom: 0; color: #586069; margin-top: 24px;">Best regards,<br><strong style="color: #24292e;">{sender_name}</strong></p>
                             </div>
                         </div>
                         """
@@ -263,20 +267,25 @@ Incoming Email Body: {text_body}"""
                     if sender_email:
                         count_text = f"{watcher_count} other users have" if watcher_count > 1 else "Another user has" if watcher_count == 1 else "Other users have"
                         html_body = f"""
-                        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
-                            <div style="background-color: #FF991F; padding: 15px 20px; color: #fff;">
-                                <h2 style="margin: 0; font-size: 20px;">Incident Tracked</h2>
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.5; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
+                            <div style="padding: 24px; border-bottom: 1px solid #e1e4e8;">
+                                <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #24292e;">Incident Tracked</h2>
                             </div>
-                            <div style="padding: 20px;">
-                                <p>Hello,</p>
+                            <div style="padding: 24px;">
+                                <p style="margin-top: 0;">Hello,</p>
                                 <p>This issue is currently tracking under an active master incident. {count_text} also reported this event.</p>
-                                <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
-                                    <li><strong>Reference ID:</strong> {ticket_id}</li>
-                                    <li><strong>Status:</strong> {issue_status_name}</li>
-                                </ul>
-                                <p>We have linked your report to the master incident. Our engineering team is actively working on a resolution, and you will be notified automatically when it is resolved.</p>
-                                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                                <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
+                                <div style="background-color: #fffbdd; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; margin: 20px 0;">
+                                    <div style="margin-bottom: 12px;">
+                                        <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Master Incident ID</span><br>
+                                        <span style="font-size: 15px; font-weight: 500;">{ticket_id}</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Current Status</span><br>
+                                        <span style="font-size: 15px; font-weight: 500;">{issue_status_name}</span>
+                                    </div>
+                                </div>
+                                <p>We have linked your report to the master incident. Our team is actively working on a resolution, and you will be notified automatically when it is resolved.</p>
+                                <p style="margin-bottom: 0; color: #586069; margin-top: 24px;">Best regards,<br><strong style="color: #24292e;">{sender_name}</strong></p>
                             </div>
                         </div>
                         """
@@ -315,9 +324,10 @@ Incoming Email Body: {text_body}"""
                     if issue_key and attachments:
                         attach_headers = {"Authorization": f"Basic {auth_encoded}", "X-Atlassian-Token": "no-check"}
                         for filename, content_bytes, content_type in attachments:
-                            m_data = MultipartEncoder(fields={'file': (filename, content_bytes, content_type)})
-                            attach_headers['Content-Type'] = m_data.content_type
-                            requests.post(f"https://{jira_domain}/rest/api/3/issue/{issue_key}/attachments", data=m_data, headers=attach_headers)
+                            files = {'file': (filename, content_bytes, content_type)}
+                            att_res = requests.post(f"https://{jira_domain}/rest/api/3/issue/{issue_key}/attachments", files=files, headers=attach_headers)
+                            if not att_res.ok:
+                                print(f"Attachment failed: {att_res.text}")
                     
                     if table and issue_key:
                         table.put_item(Item={
@@ -332,23 +342,42 @@ Incoming Email Body: {text_body}"""
                         })
                     
                     if sender_email:
+                        category = ai_analysis.get('category', 'General')
+                        priority = ai_analysis.get('priority', 'Medium')
                         html_body = f"""
-                        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
-                            <div style="background-color: #00875A; padding: 15px 20px; color: #fff;">
-                                <h2 style="margin: 0; font-size: 20px;">Support Request Received</h2>
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.5; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
+                            <div style="padding: 24px; border-bottom: 1px solid #e1e4e8;">
+                                <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #24292e;">Support Request Received</h2>
                             </div>
-                            <div style="padding: 20px;">
-                                <p>Hello,</p>
+                            <div style="padding: 24px;">
+                                <p style="margin-top: 0;">Hello,</p>
                                 <p>Your support request has been acknowledged and is securely in our queue for review.</p>
-                                <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
-                                    <li><strong>Reference ID:</strong> {issue_key}</li>
-                                    <li><strong>Status:</strong> Open</li>
-                                    <li><strong>Category:</strong> {ai_analysis.get('category', 'General')}</li>
-                                    <li><strong>Priority:</strong> {ai_analysis.get('priority', 'Medium')}</li>
-                                </ul>
+                                <div style="background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; margin: 20px 0;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <tr>
+                                            <td style="padding-bottom: 12px; width: 50%;">
+                                                <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Reference ID</span><br>
+                                                <span style="font-size: 15px; font-weight: 500;">{issue_key}</span>
+                                            </td>
+                                            <td style="padding-bottom: 12px; width: 50%;">
+                                                <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Status</span><br>
+                                                <span style="font-size: 15px; font-weight: 500;">Open</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="width: 50%;">
+                                                <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Category</span><br>
+                                                <span style="font-size: 15px; font-weight: 500;">{category}</span>
+                                            </td>
+                                            <td style="width: 50%;">
+                                                <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Priority</span><br>
+                                                <span style="font-size: 15px; font-weight: 500;">{priority}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
                                 <p>Our team will look into this and provide updates accordingly.</p>
-                                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                                <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
+                                <p style="margin-bottom: 0; color: #586069; margin-top: 24px;">Best regards,<br><strong style="color: #24292e;">{sender_name}</strong></p>
                             </div>
                         </div>
                         """

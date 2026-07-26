@@ -64,43 +64,47 @@ def lambda_handler(event, context):
             
         print(f"Found {len(watchers)} users watching {issue_key}")
         
-        # Send update emails
-        for user_email in watchers:
-            try:
-                # Choose color based on status category
-                bg_color = "#36B37E" if status_category == 'done' else "#0052CC"
-                title = "Incident Resolved" if status_category == 'done' else "Ticket Status Updated"
-                message_text = "The incident associated with your support request has been successfully resolved." if status_category == 'done' else "There has been an update to the status of your support request."
-                
-                html_body = f"""
-                <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden;">
-                    <div style="background-color: {bg_color}; padding: 15px 20px; color: #fff;">
-                        <h2 style="margin: 0; font-size: 20px;">{title}</h2>
+        # Send update emails ONLY if the incident is resolved
+        if status_category == 'done':
+            for user_email in watchers:
+                try:
+                    html_body = f"""
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.5; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
+                        <div style="padding: 24px; border-bottom: 1px solid #e1e4e8;">
+                            <h2 style="margin: 0; font-size: 18px; font-weight: 600; color: #24292e;">Incident Resolved</h2>
+                        </div>
+                        <div style="padding: 24px;">
+                            <p style="margin-top: 0;">Hello,</p>
+                            <p>The incident associated with your support request has been successfully resolved.</p>
+                            
+                            <div style="background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; margin: 20px 0;">
+                                <div style="margin-bottom: 12px;">
+                                    <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Reference ID</span><br>
+                                    <span style="font-size: 15px; font-weight: 500;">{issue_key}</span>
+                                </div>
+                                <div>
+                                    <span style="color: #586069; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Final Status</span><br>
+                                    <span style="font-size: 15px; font-weight: 500; color: #22863a;">{issue_status_name}</span>
+                                </div>
+                            </div>
+                            
+                            <p>If you continue to experience issues, please submit a new support request by replying to this email.</p>
+                            
+                            <p style="margin-bottom: 0; color: #586069;">Best regards,<br><strong style="color: #24292e;">{sender_name}</strong></p>
+                        </div>
                     </div>
-                    <div style="padding: 20px;">
-                        <p>Hello,</p>
-                        <p>{message_text}</p>
-                        <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
-                            <li><strong>Reference ID:</strong> {issue_key}</li>
-                            <li><strong>Current Status:</strong> {issue_status_name}</li>
-                        </ul>
-                        <p>If you continue to experience issues, please submit a new support request by replying to this email or sending a new one.</p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                        <p style="font-size: 12px; color: #777;">Best regards,<br><strong>{sender_name}</strong></p>
-                    </div>
-                </div>
-                """
-                ses_client.send_email(
-                    Source=f"{sender_name} <{sender_email}>",
-                    Destination={'ToAddresses': [user_email]},
-                    Message={
-                        'Subject': {'Data': f"Update on {issue_key}: {issue_status_name}"},
-                        'Body': {'Html': {'Data': html_body}}
-                    }
-                )
-                print(f"Update email sent to {user_email}")
-            except Exception as e:
-                print(f"Failed to send update email to {user_email}: {e}")
+                    """
+                    ses_client.send_email(
+                        Source=f"{sender_name} <{sender_email}>",
+                        Destination={'ToAddresses': [user_email]},
+                        Message={
+                            'Subject': {'Data': f"Resolved: {issue_key}"},
+                            'Body': {'Html': {'Data': html_body}}
+                        }
+                    )
+                    print(f"Update email sent to {user_email}")
+                except Exception as e:
+                    print(f"Failed to send update email to {user_email}: {e}")
                 
         return {'statusCode': 200, 'body': 'Successfully processed webhook'}
         
