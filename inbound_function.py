@@ -44,12 +44,19 @@ def lambda_handler(event, context):
         try:
             # 1. Parse the S3 event
             s3_event = json.loads(record['body'])
-            if 'Records' not in s3_event or len(s3_event['Records']) == 0:
+            
+            # Handle EventBridge format
+            if 'detail-type' in s3_event and s3_event.get('source') == 'aws.s3':
+                bucket_name = s3_event['detail']['bucket']['name']
+                object_key = urllib.parse.unquote_plus(s3_event['detail']['object']['key'])
+            # Handle standard S3 Event Notification format
+            elif 'Records' in s3_event and len(s3_event['Records']) > 0:
+                s3_record = s3_event['Records'][0]
+                bucket_name = s3_record['s3']['bucket']['name']
+                object_key = urllib.parse.unquote_plus(s3_record['s3']['object']['key'])
+            else:
+                print("Skipping unrecognized event format")
                 continue
-                
-            s3_record = s3_event['Records'][0]
-            bucket_name = s3_record['s3']['bucket']['name']
-            object_key = urllib.parse.unquote_plus(s3_record['s3']['object']['key'])
             
             if not object_key.startswith('incoming/'):
                 continue
