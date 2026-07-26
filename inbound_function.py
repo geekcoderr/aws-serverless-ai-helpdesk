@@ -105,7 +105,13 @@ def lambda_handler(event, context):
                 headers = {"Authorization": f"Basic {auth_encoded}", "Content-Type": "application/json"}
                 
                 jql = f'project = {jira_project_key} AND statusCategory != Done ORDER BY created DESC'
-                search_res = requests.get(f"https://{jira_domain}/rest/api/2/search", params={'jql': jql, 'maxResults': 15}, headers=headers)
+                # Note: Jira recently deprecated /rest/api/2/search via GET, requires POST to /rest/api/3/search/jql or GET /rest/api/3/search
+                search_payload = {
+                    "jql": jql,
+                    "maxResults": 15,
+                    "fields": ["summary"]
+                }
+                search_res = requests.post(f"https://{jira_domain}/rest/api/3/search/jql", json=search_payload, headers=headers)
                 if search_res.ok:
                     issues = search_res.json().get('issues', [])
                     print(f"DEBUG JQL found {len(issues)} issues.")
