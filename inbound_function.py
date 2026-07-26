@@ -130,7 +130,7 @@ Fields:
 - "intent": Determine if the email is asking for a new ticket ("new_ticket"), asking for a status update on an existing ticket ("status_request"), or replying with more info to an existing ticket ("update_existing").
 - "ticket_id": 
    - IF the user explicitly mentions a ticket ID (e.g. SUP-123) in their email, extract it.
-   - ELSE IF the user's issue is describing the EXACT SAME problem as one of the "Currently Open Tickets" provided below, output that matching ticket ID (this means multiple users are reporting the same incident).
+   - ELSE IF the user's issue is strongly related to or describing the SAME underlying incident/bug as one of the "Currently Open Tickets" provided below, output that matching ticket ID. Use semantic reasoning. If multiple users report login failures, database timeouts, etc. in different words, they should be grouped to the same ticket_id.
    - ELSE return null.
 - "priority": High, Medium, Low
 - "category": Bug, Access, Billing, General
@@ -173,6 +173,7 @@ Incoming Email Body: {text_body}"""
                     if issue_res.ok:
                         issue_data = issue_res.json()
                         issue_summary = issue_data['fields']['summary']
+                        issue_status_name = issue_data['fields']['status']['name']
                         status_category = issue_data['fields']['status']['statusCategory']['key']
                         
                         if status_category != 'done':
@@ -208,7 +209,7 @@ Incoming Email Body: {text_body}"""
                                 <p>We have successfully received your latest message and added it to the active support ticket.</p>
                                 <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
                                     <li><strong>Reference ID:</strong> {ticket_id}</li>
-                                    <li><strong>Status:</strong> In Progress</li>
+                                    <li><strong>Status:</strong> {issue_status_name}</li>
                                 </ul>
                                 <p>Our engineering team is actively investigating and working on a resolution for this reported issue.</p>
                                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
@@ -254,7 +255,7 @@ Incoming Email Body: {text_body}"""
                                 <p>This issue is currently tracking under an active master incident. {count_text} also reported this event.</p>
                                 <ul style="background-color: #f5f5f5; padding: 15px 15px 15px 35px; border-radius: 4px;">
                                     <li><strong>Reference ID:</strong> {ticket_id}</li>
-                                    <li><strong>Status:</strong> Active Incident Investigated</li>
+                                    <li><strong>Status:</strong> {issue_status_name}</li>
                                 </ul>
                                 <p>We have linked your report to the master incident. Our engineering team is actively working on a resolution, and you will be notified automatically when it is resolved.</p>
                                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
