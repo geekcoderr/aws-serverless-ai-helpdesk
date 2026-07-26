@@ -17,6 +17,7 @@ env:
   # TODO: Replace with the exact names of your two Lambda functions in AWS
   MAIN_LAMBDA_NAME: "ProcessInboundEmail"
   DLQ_LAMBDA_NAME: "ProcessInboundEmailDLQ"
+  WEBHOOK_LAMBDA_NAME: "JiraWebhookListener"
 
 jobs:
   build-and-deploy:
@@ -68,7 +69,14 @@ jobs:
             --function-name ${{ env.DLQ_LAMBDA_NAME }} \
             --image-uri ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
 
+      - name: Update Webhook Lambda Function Code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.WEBHOOK_LAMBDA_NAME }} \
+            --image-uri ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
       - name: Wait for Lambda Functions to Update
         run: |
           aws lambda wait function-updated --function-name ${{ env.MAIN_LAMBDA_NAME }}
           aws lambda wait function-updated --function-name ${{ env.DLQ_LAMBDA_NAME }}
+          aws lambda wait function-updated --function-name ${{ env.WEBHOOK_LAMBDA_NAME }}
