@@ -177,7 +177,7 @@ Incoming Email Body: {text_body}"""
                     })
 
             bedrock_response = bedrock_client.converse(
-                modelId="amazon.nova-lite-v1:0",
+                modelId="amazon.nova-pro-v1:0",
                 messages=[{"role": "user", "content": message_content}],
                 inferenceConfig={"maxTokens": 300, "temperature": 0.0}
             )
@@ -220,6 +220,14 @@ Incoming Email Body: {text_body}"""
                 if intent in ['status_request', 'update_existing'] and ticket_id:
                     comment_payload = {"body": f"User {from_address} sent an email update:\n\n{safe_body}"}
                     requests.post(f"https://{jira_domain}/rest/api/2/issue/{ticket_id}/comment", json=comment_payload, headers=headers)
+                    
+                    # Track the user as a watcher in DynamoDB so they receive future Webhook updates (like Resolution)
+                    if table:
+                        table.put_item(Item={
+                            'PK': f"INCIDENT#{ticket_id}",
+                            'SK': f"REPORTER#{raw_email}",
+                            'notified_at': datetime.now().isoformat()
+                        })
                     
                     if attachments:
                         attach_headers = {"Authorization": f"Basic {auth_encoded}", "X-Atlassian-Token": "no-check"}
