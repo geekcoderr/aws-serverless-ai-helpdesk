@@ -127,7 +127,7 @@ def lambda_handler(event, context):
 Output ONLY a JSON object.
 
 Fields:
-- "intent": Determine if the email is asking for a new ticket ("new_ticket"), asking for a status update on an existing ticket ("status_request"), or replying with more info to an existing ticket ("update_existing").
+- "intent": Always use "new_ticket" if the user is reporting a problem/issue. Use "update_existing" ONLY if the user is explicitly replying to an existing ticket.
 - "ticket_id": 
    - IF the user explicitly mentions a ticket ID (e.g. SUP-123) in their email, extract it.
    - ELSE IF the user's issue is strongly related to or describing the SAME underlying incident/bug as one of the "Currently Open Tickets" provided below, output that matching ticket ID. Use semantic reasoning. If multiple users report login failures, database timeouts, etc. in different words, they should be grouped to the same ticket_id.
