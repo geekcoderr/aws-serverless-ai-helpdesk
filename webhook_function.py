@@ -39,14 +39,29 @@ def lambda_handler(event, context):
             for item in ddb_query.get('Items', []):
                 if item['SK'].startswith('REPORTER#'):
                     email = item['SK'].split('REPORTER#')[1]
+                    
+                    # Check if resolved email was already sent
+                    resolved_notified = item.get('resolved_notified', False)
+                    if status_category == 'done' and resolved_notified:
+                        print(f"Skipping {email} - already notified of resolution for {issue_key}.")
+                        continue
+                        
                     watchers.append(email)
                     
                     # Update DynamoDB state
+                    update_expr = 'SET #s = :val'
+                    expr_attrs = {'#s': 'status'}
+                    expr_vals = {':val': issue_status_name}
+                    
+                    if status_category == 'done':
+                        update_expr += ', resolved_notified = :true_val'
+                        expr_vals[':true_val'] = True
+                        
                     table.update_item(
                         Key={'PK': item['PK'], 'SK': item['SK']},
-                        UpdateExpression='SET #s = :val',
-                        ExpressionAttributeNames={'#s': 'status'},
-                        ExpressionAttributeValues={':val': issue_status_name}
+                        UpdateExpression=update_expr,
+                        ExpressionAttributeNames=expr_attrs,
+                        ExpressionAttributeValues=expr_vals
                     )
                     
                     # Also try to update the EMAIL# mapping
