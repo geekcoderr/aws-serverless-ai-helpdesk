@@ -143,9 +143,26 @@ Incoming Email Body: {text_body}"""
 
             print(f"DEBUG Bedrock Prompt:\n{bedrock_prompt}")
 
+            message_content = [{"text": bedrock_prompt}]
+            
+            for filename, content_bytes, content_type in attachments:
+                fmt = None
+                if 'image/png' in content_type.lower(): fmt = 'png'
+                elif 'image/jpeg' in content_type.lower() or 'image/jpg' in content_type.lower(): fmt = 'jpeg'
+                elif 'image/gif' in content_type.lower(): fmt = 'gif'
+                elif 'image/webp' in content_type.lower(): fmt = 'webp'
+                
+                if fmt:
+                    message_content.append({
+                        "image": {
+                            "format": fmt,
+                            "source": {"bytes": content_bytes}
+                        }
+                    })
+
             bedrock_response = bedrock_client.converse(
                 modelId="amazon.nova-lite-v1:0",
-                messages=[{"role": "user", "content": [{"text": bedrock_prompt}]}],
+                messages=[{"role": "user", "content": message_content}],
                 inferenceConfig={"maxTokens": 300, "temperature": 0.0}
             )
 
